@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Analysis Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f1923;
+            --card: #1c2d3f;
+            --card-alt: #213347;
+            --accent: #00c2ff;
+            --accent2: #ff5e5b;
+            --accent3: #00e5a0;
+            --accent4: #ffd166;
+            --text: #e8f0f7;
+            --text-muted: #7a99b8;
+            --border: rgba(0,194,255,0.12);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Outfit', sans-serif; background: var(--primary); color: var(--text); min-height: 100vh; }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, #0a1520 0%, #162030 50%, #0d1e2e 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 28px 40px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: relative; overflow: hidden;
+        }
+        header::before {
+            content: ''; position: absolute; top: -60px; right: -60px;
+            width: 260px; height: 260px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,194,255,0.08) 0%, transparent 70%);
+        }
+        header .logo-block h1 { font-size: 1.55rem; font-weight: 700; }
+        header .logo-block h1 span { color: var(--accent); }
+        header .logo-block p { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+        .header-badge {
+            background: rgba(0,194,255,0.1); border: 1px solid rgba(0,194,255,0.25);
+            color: var(--accent); font-size: 0.75rem; font-family: 'DM Mono', monospace;
+            padding: 6px 14px; border-radius: 20px;
+        }
+
+        /* LAYOUT */
+        .container { max-width: 1280px; margin: 28px auto; padding: 0 24px; display: flex; flex-direction: column; gap: 20px; }
+        .card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+            padding: 24px; position: relative; overflow: hidden;
+        }
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.4;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+        }
+        .card-header .title { font-size: 1rem; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+        .card-header .title .num {
+            background: var(--accent); color: var(--primary); font-size: 0.7rem; font-weight: 700;
+            width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* STAT BOXES */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+        .stat-box {
+            background: var(--card-alt); border: 1px solid var(--border); border-radius: 10px;
+            padding: 18px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-box:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .stat-box h3 { font-size: 0.72rem; font-weight: 400; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-box p { font-size: 1.7rem; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--accent); }
+        .stat-box.s2 p { color: var(--accent3); }
+        .stat-box.s3 p { color: var(--accent4); }
+        .stat-box.s4 p { color: #c084fc; }
+
+        /* INPUTS */
+        .section-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .input-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 18px; }
+        .input-field { display: flex; flex-direction: column; gap: 6px; }
+        .input-field label { font-size: 0.75rem; color: var(--text-muted); }
+        .input-field input {
+            background: var(--card-alt); border: 1px solid rgba(0,194,255,0.2); border-radius: 8px;
+            color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.9rem;
+            padding: 9px 12px; width: 110px; outline: none; transition: border-color 0.2s;
+        }
+        .input-field input:focus { border-color: var(--accent); }
+
+        /* BUTTONS */
+        .btn { border: none; cursor: pointer; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600; padding: 10px 18px; transition: all 0.2s; }
+        .btn-primary { background: var(--accent); color: var(--primary); }
+        .btn-primary:hover { background: #33ccff; box-shadow: 0 0 16px rgba(0,194,255,0.35); }
+        .btn-danger { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); }
+        .btn-danger:hover { background: var(--accent2); color: white; }
+        .btn-success { background: var(--accent3); color: var(--primary); }
+        .btn-success:hover { background: #00ffb3; }
+        .btn-run { background: linear-gradient(135deg, var(--accent), #0080b3); color: white; padding: 10px 22px; }
+        .btn-run:hover { box-shadow: 0 0 20px rgba(0,194,255,0.4); }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* FORMAT BADGES */
+        .format-badges { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+        .fmt-badge { font-size: 0.68rem; font-family: 'DM Mono', monospace; font-weight: 500; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px; border: 1px solid; }
+        .fmt-csv  { background: rgba(0,194,255,0.1);    color: #00c2ff; border-color: rgba(0,194,255,0.3); }
+        .fmt-xl   { background: rgba(0,229,160,0.1);    color: #00e5a0; border-color: rgba(0,229,160,0.3); }
+        .fmt-json { background: rgba(255,209,102,0.1);  color: #ffd166; border-color: rgba(255,209,102,0.3); }
+        .fmt-tsv  { background: rgba(192,132,252,0.1);  color: #c084fc; border-color: rgba(192,132,252,0.3); }
+        .fmt-xml  { background: rgba(255,94,91,0.1);    color: #ff5e5b; border-color: rgba(255,94,91,0.3); }
+        .fmt-ods  { background: rgba(0,194,255,0.07);   color: #7ae3ff; border-color: rgba(0,194,255,0.2); }
+        .fmt-txt  { background: rgba(200,200,200,0.08); color: #9ab0c8; border-color: rgba(200,200,200,0.2); }
+
+        /* UPLOAD ZONE */
+        .upload-zone {
+            border: 2px dashed rgba(0,194,255,0.25); border-radius: 12px; padding: 28px;
+            text-align: center; cursor: pointer; transition: all 0.25s;
+            background: rgba(0,194,255,0.03); position: relative;
+        }
+        .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(0,194,255,0.07); }
+        .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .upload-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+        .upload-zone .uz-label { font-size: 0.95rem; color: var(--text); font-weight: 500; }
+        .upload-zone .uz-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+        .upload-zone .filename { margin-top: 10px; font-size: 0.8rem; font-family: 'DM Mono', monospace; color: var(--accent3); display: none; }
+
+        /* PARSE INFO */
+        .parse-info {
+            display: none; background: var(--card-alt); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 18px; margin-top: 12px;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .pi-chip {
+            background: rgba(0,194,255,0.1); border: 1px solid rgba(0,194,255,0.2);
+            color: var(--accent); font-family: 'DM Mono', monospace; font-size: 0.75rem;
+            padding: 3px 10px; border-radius: 20px;
+        }
+
+        /* SHEET ROW */
+        .sheet-row { display: none; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .sheet-row label { font-size: 0.8rem; color: var(--text-muted); }
+        .sheet-row select {
+            background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text); font-family: 'Outfit', sans-serif; font-size: 0.85rem;
+            padding: 7px 10px; outline: none;
+        }
+
+        /* COLUMN MAP */
+        .column-map { display: none; background: var(--card-alt); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-top: 16px; }
+        .column-map .map-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+        .column-map .map-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+        .column-map label { font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        .column-map select {
+            width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text); font-family: 'Outfit', sans-serif; font-size: 0.85rem; padding: 8px 10px; outline: none;
+        }
+        .column-map select:focus { border-color: var(--accent); }
+
+        /* INTERPRETATION */
+        .interpretation {
+            background: rgba(0,194,255,0.05); border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0; padding: 16px 18px; margin-top: 16px;
+            font-size: 0.9rem; line-height: 1.7; color: var(--text-muted);
+        }
+        .interpretation strong { color: var(--text); }
+
+        /* CHARTS */
+        .charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .charts-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .chart-wrap { background: var(--card-alt); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+        .chart-title { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .chart-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .chart-canvas-wrap { position: relative; height: 260px; }
+        .chart-divider { border: 0; border-top: 1px solid var(--border); margin: 22px 0; }
+        @media (max-width: 900px) { .charts-2col, .charts-3col { grid-template-columns: 1fr; } }
+
+        /* TABLE */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead th { background: rgba(0,194,255,0.08); color: var(--accent); padding: 10px 14px; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; border-bottom: 1px solid var(--border); }
+        tbody td { padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 0.83rem; }
+        tbody tr:hover td { background: rgba(0,194,255,0.04); color: var(--text); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; font-family: 'Outfit', sans-serif; }
+        .badge-pass { background: rgba(0,229,160,0.15); color: var(--accent3); }
+        .badge-fail { background: rgba(255,94,91,0.15); color: var(--accent2); }
+        .del-btn { background: transparent; border: 1px solid rgba(255,94,91,0.3); color: var(--accent2); border-radius: 5px; padding: 2px 8px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
+        .del-btn:hover { background: var(--accent2); color: white; }
+
+        /* NOTIFICATION */
+        .notification { display: none; padding: 10px 16px; background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.25); border-radius: 8px; color: var(--accent3); font-size: 0.85rem; margin-top: 14px; }
+        .notification.err { background: rgba(255,94,91,0.1); border-color: rgba(255,94,91,0.25); color: var(--accent2); }
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); font-size: 0.9rem; }
+        .empty-state .big { font-size: 2.5rem; margin-bottom: 10px; }
+
+        /* LIGHT THEME */
+        body.light {
+            --primary: #f0f4f8;
+            --card: #ffffff;
+            --card-alt: #f5f8fc;
+            --accent: #0080b3;
+            --accent2: #e63b38;
+            --accent3: #00966b;
+            --accent4: #c8860a;
+            --text: #1a2535;
+            --text-muted: #4a6380;
+            --border: rgba(0,128,179,0.15);
+        }
+        body.light header {
+            background: linear-gradient(135deg, #e2eaf2 0%, #dde8f2 50%, #e5eef7 100%);
+        }
+        body.light header::before {
+            background: radial-gradient(circle, rgba(0,128,179,0.07) 0%, transparent 70%);
+        }
+        body.light .card::before {
+            background: linear-gradient(90deg, transparent, rgba(0,128,179,0.3), transparent);
+        }
+        body.light thead th { background: rgba(0,128,179,0.08); }
+        body.light .upload-zone { background: rgba(0,128,179,0.02); }
+        body.light .upload-zone:hover, body.light .upload-zone.dragover { background: rgba(0,128,179,0.06); }
+        body.light .parse-info, body.light .column-map, body.light .sheet-row select,
+        body.light .column-map select { background: #f0f4f8; }
+        body.light .pi-chip { background: rgba(0,128,179,0.08); border-color: rgba(0,128,179,0.2); }
+        body.light .notification { background: rgba(0,150,107,0.08); border-color: rgba(0,150,107,0.25); }
+        body.light .notification.err { background: rgba(230,59,56,0.08); border-color: rgba(230,59,56,0.25); }
+        body.light .interpretation { background: rgba(0,128,179,0.04); }
+        body.light .badge-pass { background: rgba(0,150,107,0.12); }
+        body.light .badge-fail { background: rgba(230,59,56,0.12); }
+        body.light tbody tr:hover td { background: rgba(0,128,179,0.04); }
+
+        /* TOGGLE BUTTON */
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 16px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.25s;
+            white-space: nowrap;
+        }
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0,194,255,0.06);
+        }
+        body.light .theme-toggle:hover {
+            background: rgba(0,128,179,0.06);
+        }
+        .theme-toggle .t-icon { font-size: 1rem; transition: transform 0.4s; }
+        .theme-toggle:hover .t-icon { transform: rotate(20deg); }
+    </style>
+</head>
+<body class="light">
+
+<header>
+    <div class="logo-block">
+        <h1>Statistical <span>Inference</span> &amp; Multivariate Analysis</h1>
+        <p>Project: Attendance vs Academic Achievement</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Section 0: Data Input -->
+    <div class="card">
+        <div class="card-header">
+            <div class="title"><span class="num">0</span> Data Input</div>
+        </div>
+
+        <div class="section-label">Manual Entry</div>
+        <div class="input-row">
+            <div class="input-field">
+                <label>Student ID</label>
+                <input type="number" id="input-id" placeholder="Auto">
+            </div>
+            <div class="input-field">
+                <label>Attendance (%)</label>
+                <input type="number" id="input-att" placeholder="0-100">
+            </div>
+            <div class="input-field">
+                <label>Study Hours</label>
+                <input type="number" id="input-hours" placeholder="Hours">
+            </div>
+            <div class="input-field">
+                <label>Final Marks</label>
+                <input type="number" id="input-marks" placeholder="0-100">
+            </div>
+            <button class="btn btn-success" onclick="addManualData()">+ Add Entry</button>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="generateData()">&#9881; Generate Random Data</button>
+            <button class="btn btn-danger" onclick="clearData()">&#x2715; Clear All</button>
+        </div>
+
+        <hr class="chart-divider">
+
+        <!-- Multi-format upload -->
+        <div class="section-label">External Dataset Import</div>
+
+        <div class="format-badges">
+            <span class="fmt-badge fmt-csv">CSV</span>
+            <span class="fmt-badge fmt-xl">XLSX</span>
+            <span class="fmt-badge fmt-xl">XLS</span>
+            <span class="fmt-badge fmt-json">JSON</span>
+            <span class="fmt-badge fmt-tsv">TSV</span>
+            <span class="fmt-badge fmt-xml">XML</span>
+            <span class="fmt-badge fmt-ods">ODS</span>
+            <span class="fmt-badge fmt-txt">TXT</span>
+        </div>
+
+        <div class="upload-zone" id="upload-zone"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave()"
+             ondrop="handleDrop(event)">
+            <input type="file" id="file-input"
+                   accept=".csv,.tsv,.txt,.xlsx,.xls,.json,.xml,.ods"
+                   onchange="handleFileSelect(event)">
+            <div class="icon">&#128194;</div>
+            <div class="uz-label">Drop any supported file here or click to browse</div>
+            <div class="uz-sub">CSV &middot; Excel (XLSX / XLS) &middot; JSON &middot; TSV &middot; XML &middot; ODS &middot; TXT</div>
+            <div class="filename" id="file-name-display"></div>
+        </div>
+
+        <!-- Sheet selector (multi-sheet Excel/ODS) -->
+        <div class="sheet-row" id="sheet-row">
+            <label>Select worksheet:</label>
+            <select id="sheet-select" onchange="onSheetChange()"></select>
+        </div>
+
+        <!-- Parse summary chips -->
+        <div class="parse-info" id="parse-info">
+            <span id="pi-rows" class="pi-chip"></span>
+            <span id="pi-cols" class="pi-chip"></span>
+            <span id="pi-type" class="pi-chip"></span>
+        </div>
+
+        <!-- Column mapping -->
+        <div class="column-map" id="column-map">
+            <div class="map-title">Map your columns to fields &#8594;</div>
+            <div class="map-grid">
+                <div>
+                    <label>Student ID</label>
+                    <select id="map-id"></select>
+                </div>
+                <div>
+                    <label>Attendance (%) &#9733;</label>
+                    <select id="map-att"></select>
+                </div>
+                <div>
+                    <label>Study Hours &#9733;</label>
+                    <select id="map-hours"></select>
+                </div>
+                <div>
+                    <label>Final Marks &#9733;</label>
+                    <select id="map-marks"></select>
+                </div>
+            </div>
+            <div style="margin-top:14px;" class="btn-group">
+                <button class="btn btn-primary" onclick="importData()">&#8595; Import Dataset</button>
+                <button class="btn btn-danger" onclick="cancelImport()">&#x2715; Cancel</button>
+            </div>
+        </div>
+
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <!-- Section 1: Descriptive Statistics -->
+    <div class="card">
+        <div class="card-header">
+            <div class="title"><span class="num">1</span> Descriptive Statistics</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-box"><h3>Sample Size (n)</h3><p id="sample-size">0</p></div>
+            <div class="stat-box s2"><h3>Mean Attendance</h3><p id="mean-attendance">&#8212;</p></div>
+            <div class="stat-box s3"><h3>Mean Final Marks</h3><p id="mean-marks">&#8212;</p></div>
+            <div class="stat-box s4"><h3>Std Dev (Marks)</h3><p id="std-marks">&#8212;</p></div>
+        </div>
+    </div>
+
+    <!-- Section 2: Inferential Statistics -->
+    <div class="card">
+        <div class="card-header">
+            <div class="title"><span class="num">2</span> Inferential Statistics</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-box"><h3>Pearson Correlation (r)</h3><p id="correlation">&#8212;</p></div>
+            <div class="stat-box s2"><h3>Regression Slope (&beta;&#8321;)</h3><p id="slope">&#8212;</p></div>
+            <div class="stat-box s3"><h3>Regression Intercept (&beta;&#8320;)</h3><p id="intercept">&#8212;</p></div>
+            <div class="stat-box s4"><h3>R-Squared (R&sup2;)</h3><p id="r-squared">&#8212;</p></div>
+        </div>
+        <div class="interpretation" id="interpretation-text">
+            Add data and click <strong>Run Analysis</strong> to generate results.
+        </div>
+    </div>
+
+    <!-- Section 3: Visualizations -->
+    <div class="card">
+        <div class="card-header">
+            <div class="title"><span class="num">3</span> Graphs &amp; Visualizations</div>
+            <button class="btn btn-run" onclick="runAnalysis()">&#9654; Run Analysis</button>
+        </div>
+
+        <div class="charts-2col">
+            <div class="chart-wrap">
+                <div class="chart-title"><span class="dot" style="background:var(--accent)"></span>Scatter &mdash; Attendance vs Marks</div>
+                <div class="chart-canvas-wrap"><canvas id="scatterChart"></canvas></div>
+            </div>
+            <div class="chart-wrap">
+                <div class="chart-title"><span class="dot" style="background:var(--accent4)"></span>Histogram &mdash; Marks Distribution</div>
+                <div class="chart-canvas-wrap"><canvas id="histogramChart"></canvas></div>
+            </div>
+        </div>
+
+        <hr class="chart-divider">
+
+        <div class="charts-3col">
+            <div class="chart-wrap">
+                <div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Pass / Fail Distribution</div>
+                <div class="chart-canvas-wrap"><canvas id="pieChart"></canvas></div>
+            </div>
+            <div class="chart-wrap">
+                <div class="chart-title"><span class="dot" style="background:#c084fc"></span>Avg Marks by Attendance Level</div>
+                <div class="chart-canvas-wrap"><canvas id="barChart"></canvas></div>
+            </div>
+            <div class="chart-wrap">
+                <div class="chart-title"><span class="dot" style="background:var(--accent2)"></span>Scatter &mdash; Study Hours vs Marks</div>
+                <div class="chart-canvas-wrap"><canvas id="studyScatter"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Dataset Table -->
+    <div class="card">
+        <div class="card-header">
+            <div class="title"><span class="num">4</span> Dataset</div>
+            <span style="font-size:0.8rem;color:var(--text-muted);font-family:'DM Mono',monospace;" id="row-count">0 rows</span>
+        </div>
+        <div class="table-wrap">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Attendance (%)</th><th>Study Hours</th>
+                        <th>Final Marks</th><th>Status</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6"><div class="empty-state"><div class="big">&#128202;</div>No data yet.</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let studentData = [];
+let chartInstances = {};
+let parsedHeaders = [];
+let parsedRows = [];
+let parsedWorkbook = null;
+let currentSheetName = null;
+
+/* ═══════════════════════════════════════
+   MATH UTILS  (original logic preserved)
+═══════════════════════════════════════ */
+const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+const standardDeviation = (arr, m) => {
+    if (!arr.length) return 0;
+    return Math.sqrt(mean(arr.map(v => Math.pow(v - m, 2))));
+};
+
+const correlation = (x, y) => {
+    if (!x.length) return 0;
+    const mx = mean(x), my = mean(y);
+    let num = 0, dx = 0, dy = 0;
+    for (let i = 0; i < x.length; i++) {
+        num += (x[i] - mx) * (y[i] - my);
+        dx += Math.pow(x[i] - mx, 2);
+        dy += Math.pow(y[i] - my, 2);
+    }
+    return num / Math.sqrt(dx * dy);
+};
+
+const linearRegression = (x, y) => {
+    if (!x.length) return { slope: 0, intercept: 0, rSquared: 0 };
+    const n = x.length;
+    let sx = 0, sy = 0, sxy = 0, sxx = 0;
+    for (let i = 0; i < n; i++) { sx += x[i]; sy += y[i]; sxy += x[i] * y[i]; sxx += x[i] * x[i]; }
+    const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+    const intercept = (sy - slope * sx) / n;
+    return { slope, intercept, rSquared: Math.pow(correlation(x, y), 2) };
+};
+
+/* ═══════════════════════════════════════
+   DATA MANAGEMENT  (original logic preserved)
+═══════════════════════════════════════ */
+function generateData() {
+    studentData = [];
+    for (let i = 1; i <= 60; i++) {
+        let att = Math.floor(Math.random() * 50) + 50;
+        let study = Math.floor((att / 100) * 15) + Math.floor(Math.random() * 10);
+        let marks = Math.floor(14 + (0.58 * att) + (Math.random() * 10) - 5);
+        if (marks > 80) marks = 80;
+        if (marks < 20) marks = 20;
+        studentData.push({ id: i, attendance: att, studyHours: study, finalMarks: marks });
+    }
+    populateTable();
+    showNotification('60 random students generated.');
+    runAnalysis();
+}
+
+function addManualData() {
+    const id = parseInt(document.getElementById('input-id').value) || studentData.length + 1;
+    const att = parseFloat(document.getElementById('input-att').value);
+    const hours = parseFloat(document.getElementById('input-hours').value);
+    const marks = parseFloat(document.getElementById('input-marks').value);
+    if (isNaN(att) || isNaN(hours) || isNaN(marks)) { alert('Fill in all numeric fields.'); return; }
+    studentData.push({ id, attendance: att, studyHours: hours, finalMarks: marks });
+    ['input-id', 'input-att', 'input-hours', 'input-marks'].forEach(i => document.getElementById(i).value = '');
+    populateTable();
+    showNotification('Entry added.');
+    runAnalysis();
+}
+
+function clearData() {
+    studentData = [];
+    populateTable();
+    resetStats();
+    destroyCharts();
+    showNotification('All data cleared.');
+}
+
+function deleteRow(i) {
+    studentData.splice(i, 1);
+    populateTable();
+    runAnalysis();
+}
+
+function showNotification(msg, isErr = false) {
+    const el = document.getElementById('notification');
+    el.textContent = msg;
+    el.className = 'notification' + (isErr ? ' err' : '');
+    el.style.display = 'block';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.style.display = 'none', 3500);
+}
+
+/* ═══════════════════════════════════════
+   FILE ROUTING
+═══════════════════════════════════════ */
+function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById('upload-zone').classList.add('dragover');
+}
+function handleDragLeave() {
+    document.getElementById('upload-zone').classList.remove('dragover');
+}
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('upload-zone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) routeFile(file);
+}
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) routeFile(file);
+}
+
+function routeFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    // Show filename
+    const fn = document.getElementById('file-name-display');
+    fn.textContent = file.name;
+    fn.style.display = 'block';
+
+    if (['xlsx', 'xls', 'ods'].includes(ext)) {
+        parseExcel(file, ext);
+    } else if (ext === 'json') {
+        parseJSON(file);
+    } else if (ext === 'xml') {
+        parseXML(file);
+    } else {
+        // CSV, TSV, TXT, or unknown — treat as delimited text
+        parseDelimited(file, ext === 'tsv' ? '\t' : null);
+    }
+}
+
+/* ═══════════════════════════════════════
+   PARSERS
+═══════════════════════════════════════ */
+
+// --- Excel / ODS (SheetJS) ---
+function parseExcel(file, ext) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            parsedWorkbook = XLSX.read(e.target.result, { type: 'array' });
+            const sheets = parsedWorkbook.SheetNames;
+
+            const sel = document.getElementById('sheet-select');
+            sel.innerHTML = sheets.map(s => `<option>${s}</option>`).join('');
+            document.getElementById('sheet-row').style.display = sheets.length > 1 ? 'flex' : 'none';
+
+            currentSheetName = sheets[0];
+            extractSheetData(currentSheetName, ext.toUpperCase());
+        } catch (err) {
+            showNotification('Could not read file: ' + err.message, true);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function onSheetChange() {
+    currentSheetName = document.getElementById('sheet-select').value;
+    extractSheetData(currentSheetName, 'XLSX');
+}
+
+function extractSheetData(sheetName, typeLabel) {
+    const ws = parsedWorkbook.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (json.length < 2) { showNotification('Sheet appears empty.', true); return; }
+    parsedHeaders = json[0].map(h => String(h).trim());
+    parsedRows = json.slice(1).map(r => parsedHeaders.map((_, i) => String(r[i] !== undefined ? r[i] : '').trim()));
+    showParseInfo(parsedRows.length, parsedHeaders.length, typeLabel);
+    showColumnMap();
+}
+
+// --- CSV / TSV / TXT ---
+function parseDelimited(file, forcedDelim) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        const text = e.target.result;
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) { showNotification('File needs a header row and at least one data row.', true); return; }
+
+        const delim = forcedDelim ||
+            (lines[0].includes('\t') ? '\t' :
+             lines[0].includes(';')  ? ';'  : ',');
+
+        const splitLine = line => {
+            const result = [];
+            let cur = '', inQ = false;
+            for (const c of line) {
+                if (c === '"') { inQ = !inQ; }
+                else if (c === delim && !inQ) { result.push(cur.trim()); cur = ''; }
+                else { cur += c; }
+            }
+            result.push(cur.trim());
+            return result;
+        };
+
+        parsedHeaders = splitLine(lines[0]);
+        parsedRows = lines.slice(1).filter(l => l.trim()).map(splitLine);
+
+        const ext = file.name.split('.').pop().toUpperCase();
+        showParseInfo(parsedRows.length, parsedHeaders.length, ext);
+        showColumnMap();
+    };
+    reader.readAsText(file);
+}
+
+// --- JSON ---
+function parseJSON(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            let data = JSON.parse(e.target.result);
+            // Support array, or {data:[...]}, {students:[...]}, {records:[...]} etc.
+            if (!Array.isArray(data)) {
+                const key = Object.keys(data).find(k => Array.isArray(data[k]));
+                if (key) data = data[key];
+                else { showNotification('JSON must be an array of objects (or an object wrapping one).', true); return; }
+            }
+            if (!data.length) { showNotification('JSON array is empty.', true); return; }
+
+            // Collect all unique keys from all objects
+            const allKeys = [...new Set(data.flatMap(obj => Object.keys(obj)))];
+            parsedHeaders = allKeys;
+            parsedRows = data.map(obj => allKeys.map(h => String(obj[h] !== undefined ? obj[h] : '').trim()));
+
+            showParseInfo(parsedRows.length, parsedHeaders.length, 'JSON');
+            showColumnMap();
+        } catch (err) {
+            showNotification('Invalid JSON: ' + err.message, true);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// --- XML ---
+function parseXML(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(e.target.result, 'application/xml');
+            if (doc.querySelector('parsererror')) { showNotification('Invalid XML structure.', true); return; }
+
+            const root = doc.documentElement;
+            const records = [...root.children];
+            if (!records.length) { showNotification('No records found in XML.', true); return; }
+
+            // Union all child tag names as headers
+            const allTags = [...new Set(records.flatMap(r => [...r.children].map(c => c.tagName)))];
+            parsedHeaders = allTags;
+            parsedRows = records.map(rec =>
+                allTags.map(tag => {
+                    const el = rec.querySelector(tag);
+                    return el ? el.textContent.trim() : '';
+                })
+            );
+
+            showParseInfo(parsedRows.length, parsedHeaders.length, 'XML');
+            showColumnMap();
+        } catch (err) {
+            showNotification('XML error: ' + err.message, true);
+        }
+    };
+    reader.readAsText(file);
+}
+
+/* ═══════════════════════════════════════
+   COLUMN MAPPING UI
+═══════════════════════════════════════ */
+function showParseInfo(rows, cols, type) {
+    document.getElementById('pi-rows').textContent = rows + ' rows';
+    document.getElementById('pi-cols').textContent = cols + ' columns';
+    document.getElementById('pi-type').textContent = type;
+    document.getElementById('parse-info').style.display = 'flex';
+}
+
+function showColumnMap() {
+    const noneOpt = '<option value="">-- none --</option>';
+    ['map-id', 'map-att', 'map-hours', 'map-marks'].forEach(sid => {
+        const sel = document.getElementById(sid);
+        sel.innerHTML = noneOpt + parsedHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+    });
+
+    // Fuzzy auto-detect
+    autoGuess('map-att',   ['attendance', 'attend', 'att', 'presence', 'present']);
+    autoGuess('map-hours', ['study', 'hours', 'studyhours', 'hrs', 'study_hours', 'studying', 'hr']);
+    autoGuess('map-marks', ['marks', 'score', 'grade', 'result', 'final', 'exam', 'total', 'obtained', 'percent']);
+    autoGuess('map-id',    ['id', 'student', 'sno', 's_no', 'roll', 'studentid', 'rollno', 'no', 'num', 'sr']);
+
+    document.getElementById('column-map').style.display = 'block';
+}
+
+function autoGuess(selId, keywords) {
+    const sel = document.getElementById(selId);
+    const match = parsedHeaders.find(h =>
+        keywords.some(k => h.toLowerCase().replace(/[^a-z]/g, '').includes(k.replace(/[^a-z]/g, '')))
+    );
+    if (match) sel.value = match;
+}
+
+function importData() {
+    const attCol   = document.getElementById('map-att').value;
+    const hoursCol = document.getElementById('map-hours').value;
+    const marksCol = document.getElementById('map-marks').value;
+    const idCol    = document.getElementById('map-id').value;
+
+    if (!attCol || !hoursCol || !marksCol) {
+        showNotification('Please map Attendance, Study Hours, and Final Marks columns.', true);
+        return;
+    }
+
+    const ai = parsedHeaders.indexOf(attCol);
+    const hi = parsedHeaders.indexOf(hoursCol);
+    const mi = parsedHeaders.indexOf(marksCol);
+    const ii = idCol ? parsedHeaders.indexOf(idCol) : -1;
+
+    let imported = 0;
+    const startId = studentData.length + 1;
+
+    parsedRows.forEach((row, i) => {
+        const att   = parseFloat(row[ai]);
+        const hours = parseFloat(row[hi]);
+        const marks = parseFloat(row[mi]);
+        if (isNaN(att) || isNaN(hours) || isNaN(marks)) return;
+        const id = (ii >= 0 && row[ii]) ? row[ii] : (startId + i);
+        studentData.push({ id, attendance: att, studyHours: hours, finalMarks: marks });
+        imported++;
+    });
+
+    resetImportUI();
+    populateTable();
+    showNotification('Imported ' + imported + ' rows successfully.');
+    runAnalysis();
+}
+
+function cancelImport() { resetImportUI(); }
+
+function resetImportUI() {
+    ['column-map', 'parse-info', 'sheet-row'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+    document.getElementById('file-name-display').style.display = 'none';
+    document.getElementById('file-input').value = '';
+    parsedHeaders = []; parsedRows = []; parsedWorkbook = null;
+}
+
+/* ═══════════════════════════════════════
+   TABLE
+═══════════════════════════════════════ */
+function populateTable() {
+    const tbody = document.querySelector('#data-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('row-count').textContent = studentData.length + ' rows';
+
+    if (!studentData.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="big">&#128202;</div>No data yet — add manually, generate random, or import a file.</div></td></tr>`;
+        return;
+    }
+    studentData.forEach((s, i) => {
+        const pass = s.finalMarks >= 50;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${s.id}</td>
+            <td>${s.attendance}%</td>
+            <td>${s.studyHours}</td>
+            <td>${s.finalMarks}</td>
+            <td><span class="badge ${pass ? 'badge-pass' : 'badge-fail'}">${pass ? 'Pass' : 'Fail'}</span></td>
+            <td><button class="del-btn" onclick="deleteRow(${i})">&#x2715;</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+/* ═══════════════════════════════════════
+   STATISTICS
+═══════════════════════════════════════ */
+function resetStats() {
+    document.getElementById('sample-size').innerText = '0';
+    ['mean-attendance', 'mean-marks', 'std-marks', 'correlation', 'slope', 'intercept', 'r-squared']
+        .forEach(id => document.getElementById(id).innerText = '\u2014');
+    document.getElementById('interpretation-text').innerHTML =
+        'Add data and click <strong>Run Analysis</strong> to generate results.';
+    document.getElementById('row-count').textContent = '0 rows';
+}
+
+/* ═══════════════════════════════════════
+   CHART HELPERS
+═══════════════════════════════════════ */
+function axisStyle() {
+    return {
+        ticks: { color: '#7a99b8', font: { family: 'DM Mono', size: 11 } },
+        grid:  { color: 'rgba(0,194,255,0.06)' },
+        border:{ color: 'rgba(0,194,255,0.12)' }
+    };
+}
+function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
+function destroyCharts()  { Object.keys(chartInstances).forEach(id => { chartInstances[id].destroy(); delete chartInstances[id]; }); }
+
+/* ═══════════════════════════════════════
+   MAIN ANALYSIS  (original logic preserved)
+═══════════════════════════════════════ */
+function runAnalysis() {
+    if (!studentData.length) { resetStats(); destroyCharts(); return; }
+
+    const attArr   = studentData.map(s => s.attendance);
+    const marksArr = studentData.map(s => s.finalMarks);
+    const hoursArr = studentData.map(s => s.studyHours);
+
+    const mAtt   = mean(attArr);
+    const mMarks = mean(marksArr);
+    const sdMks  = standardDeviation(marksArr, mMarks);
+
+    document.getElementById('sample-size').innerText     = studentData.length;
+    document.getElementById('mean-attendance').innerText = mAtt.toFixed(2) + '%';
+    document.getElementById('mean-marks').innerText      = mMarks.toFixed(2);
+    document.getElementById('std-marks').innerText       = sdMks.toFixed(2);
+
+    const r     = correlation(attArr, marksArr);
+    const model = linearRegression(attArr, marksArr);
+
+    document.getElementById('correlation').innerText = r.toFixed(4);
+    document.getElementById('slope').innerText       = model.slope.toFixed(3);
+    document.getElementById('intercept').innerText   = model.intercept.toFixed(3);
+    document.getElementById('r-squared').innerText   = model.rSquared.toFixed(3);
+
+    const strength = r > 0.7 ? 'strong' : r > 0.4 ? 'moderate' : 'weak';
+    document.getElementById('interpretation-text').innerHTML =
+        `<strong>Result:</strong> Correlation = <strong>${r.toFixed(4)}</strong> — a <strong>${strength} positive</strong> relationship. ` +
+        `R\u00B2 = <strong>${model.rSquared.toFixed(3)}</strong> means ${(model.rSquared * 100).toFixed(1)}% of variance in Marks is explained by Attendance.<br>` +
+        `<strong>Equation:</strong> Final Marks = ${model.intercept.toFixed(2)} + ${model.slope.toFixed(2)} \u00D7 Attendance`;
+
+    drawScatterCJ(attArr,  marksArr, model,                              'scatterChart', 'Attendance (%)', 'Final Marks');
+    drawHistogramCJ(marksArr, 'histogramChart');
+    drawPieCJ(marksArr,   'pieChart');
+    drawBarCJ(attArr, marksArr, 'barChart');
+    drawScatterCJ(hoursArr, marksArr, linearRegression(hoursArr, marksArr), 'studyScatter', 'Study Hours', 'Final Marks');
+}
+
+/* ═══════════════════════════════════════
+   CHART.JS IMPLEMENTATIONS
+═══════════════════════════════════════ */
+function drawScatterCJ(xData, yData, model, canvasId, xLabel, yLabel) {
+    destroyChart(canvasId);
+    const pts = xData.map((v, i) => ({ x: v, y: yData[i] }));
+    const minX = Math.min(...xData), maxX = Math.max(...xData);
+    chartInstances[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: 'scatter',
+        data: {
+            datasets: [
+                { label: 'Students', data: pts, backgroundColor: 'rgba(0,194,255,0.55)', borderColor: 'rgba(0,194,255,0.9)', borderWidth: 1, pointRadius: 4, pointHoverRadius: 6 },
+                { label: 'Regression', data: [{ x: minX, y: model.intercept + model.slope * minX }, { x: maxX, y: model.intercept + model.slope * maxX }], type: 'line', borderColor: '#ff5e5b', borderWidth: 2, pointRadius: 0, fill: false, tension: 0 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 11 } } } },
+            scales: {
+                x: { ...axisStyle(), title: { display: true, text: xLabel, color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 11 } } },
+                y: { ...axisStyle(), title: { display: true, text: yLabel, color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 11 } } }
+            }
+        }
+    });
+}
+
+function drawHistogramCJ(data, canvasId) {
+    destroyChart(canvasId);
+    const bins = Array(8).fill(0);
+    const labels = bins.map((_, i) => `${20 + i * 10}\u2013${30 + i * 10}`);
+    data.forEach(v => { let i = Math.floor((v - 20) / 10); if (i < 0) i = 0; if (i >= bins.length) i = bins.length - 1; bins[i]++; });
+    chartInstances[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Frequency', data: bins, backgroundColor: 'rgba(255,209,102,0.6)', borderColor: '#ffd166', borderWidth: 1, borderRadius: 4 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ...axisStyle(), title: { display: true, text: 'Marks Range', color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 11 } } },
+                y: { ...axisStyle(), title: { display: true, text: 'Frequency', color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 11 } } }
+            }
+        }
+    });
+}
+
+function drawPieCJ(marksData, canvasId) {
+    destroyChart(canvasId);
+    let pass = 0, fail = 0;
+    marksData.forEach(m => m >= 50 ? pass++ : fail++);
+    chartInstances[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: 'doughnut',
+        data: {
+            labels: ['Pass (\u226550)', 'Fail (<50)'],
+            datasets: [{ data: [pass, fail], backgroundColor: ['rgba(0,229,160,0.7)', 'rgba(255,94,91,0.7)'], borderColor: ['#00e5a0', '#ff5e5b'], borderWidth: 2, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 12 }, padding: 16 } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${((ctx.raw / (pass + fail)) * 100).toFixed(1)}%)` } }
+            }
+        }
+    });
+}
+
+function drawBarCJ(attData, marksData, canvasId) {
+    destroyChart(canvasId);
+    const g = { 'Low (<60%)': { t: 0, c: 0 }, 'Med (60\u201380%)': { t: 0, c: 0 }, 'High (>80%)': { t: 0, c: 0 } };
+    for (let i = 0; i < attData.length; i++) {
+        const a = attData[i], m = marksData[i];
+        if      (a < 60)  { g['Low (<60%)'].t       += m; g['Low (<60%)'].c++;       }
+        else if (a <= 80) { g['Med (60\u201380%)'].t += m; g['Med (60\u201380%)'].c++; }
+        else              { g['High (>80%)'].t       += m; g['High (>80%)'].c++;       }
+    }
+    const labels = Object.keys(g);
+    const values = labels.map(l => g[l].c > 0 ? +(g[l].t / g[l].c).toFixed(1) : 0);
+    chartInstances[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{ label: 'Avg Final Marks', data: values, backgroundColor: ['rgba(192,132,252,0.6)', 'rgba(192,132,252,0.75)', 'rgba(192,132,252,0.9)'], borderColor: '#c084fc', borderWidth: 1, borderRadius: 6 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Avg: ${ctx.raw}` } } },
+            scales: {
+                x: { ...axisStyle() },
+                y: { ...axisStyle(), min: 0, max: 100, title: { display: true, text: 'Avg Marks', color: document.body.classList.contains('light') ? '#4a6380' : '#7a99b8', font: { family: 'Outfit', size: 11 } } }
+            }
+        }
+    });
+}
+
+/* THEME TOGGLE */
+</script>
+</body>
+</html>

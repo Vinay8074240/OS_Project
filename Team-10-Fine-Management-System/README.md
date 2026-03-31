@@ -73,10 +73,3 @@ Transaction: Student scans the QR, pays, and enters the UTR/Transaction ID.
 Verification: Admin verifies the UTR against the bank statement to mark as PAID.
 
 Focus: Fine Logic, API Integration, & Payment Gateway
-
-## 📸 App Preview
-<p align="center">
-  <img src="https://github.com/Vinay8074240/OS-CBP-Fine-Management-System/blob/main/uploads/dashboard-screenshot.png?raw=true" width="800" alt="Team 10 Dashboard">
-  <br>
-  <b>Figure 1:</b> Automated Fine Portal with Dynamic UPI QR Generation
-</p>

@@ -36,6 +36,11 @@ OS-CBP-Fine-Management-System/
 
 ⚙️ Setup Instructions
 
+1. Clone the repo
+
+Clone this repo into your local by running:
+git clone https://github.com/Vinay8074240/OS-CBP-Fine-Management-System.git
+
 1. Database Setup
 Import the schema into MySQL Workbench and run the following to select the DB:
 SQL
@@ -44,11 +49,13 @@ USE campus_security;
 2. Backend Setup
 
 cd backend
+npm install
 node server.js
 
 3. Frontend Setup
 
 cd frontend
+npm install
 npm run dev
 
 📸 System Workflow
@@ -68,4 +75,8 @@ Verification: Admin verifies the UTR against the bank statement to mark as PAID.
 Focus: Fine Logic, API Integration, & Payment Gateway
 
 ## 📸 App Preview
-![Fine Management Dashboard](./uploads/dashboard-screenshot.png)
+<p align="center">
+  <img src="https://github.com/Vinay8074240/OS-CBP-Fine-Management-System/blob/main/uploads/dashboard-screenshot.png?raw=true" width="800" alt="Team 10 Dashboard">
+  <br>
+  <b>Figure 1:</b> Automated Fine Portal with Dynamic UPI QR Generation
+</p>

@@ -1,0 +1,38 @@
+.fine-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.fine-card {
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  width: 300px;
+  text-align: center;
+  background-color: #f9f9f9;
+}
+
+.fine-card.pending { border-color: #ff4d4d; }
+.fine-card.paid { border-color: #2ecc71; background-color: #eafaf1; }
+
+input {
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover { background-color: #0056b3; }
